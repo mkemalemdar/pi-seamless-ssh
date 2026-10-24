@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0
+## 0.1.0 — 2026-10-24
 
 First release.
 
@@ -19,5 +19,6 @@ First release.
 - **Reconnects** by itself after a drop; a slow connection and transfers in progress show in the status line.
 - **Chats remember their machine:** resume, fork and `/tree` can switch back (ask me, automatically, or not).
 - **The model can switch machines** (off by default): `ssh_machines`, `ssh_connect`, `ssh_disconnect`.
-- `@` file completion from the remote project, a debug log (`PSS_DEBUG=1`), and **Remove everything** before
-  uninstalling.
+- `@` file completion from the remote project, and a debug log (`PI_SEAMLESS_SSH_DEBUG=1`).
+- **Remove everything** before uninstalling (also `/ssh remove`): settings, saved machines and passwords, session
+  folders, sockets, RAM copies and its copies in npm's cache; afterwards it writes nothing more in that pi.

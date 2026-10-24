@@ -150,4 +150,4 @@ branch of the point you're on, and connects, disconnects or asks, per the settin
 
 - pi's footer git branch can't be set by an extension, so the remote's branch is in the extension's status line.
 - Settings are written atomically (a temporary file and a rename), with mode 600.
-- The debug log (`PSS_DEBUG=1`) records the first line of each remote command, never the data sent with it.
+- The debug log (`PI_SEAMLESS_SSH_DEBUG=1`) records the first line of each remote command, never the data sent with it.

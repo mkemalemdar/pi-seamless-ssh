@@ -36,6 +36,7 @@ Needs pi 1.4 or newer, and the OpenSSH client (`ssh`) on this computer.
 /ssh vm ~/project         connect straight into that folder
 /ssh off                  back to this computer
 /ssh status               where the chat is working
+/ssh remove               remove everything (before uninstalling)
 ```
 
 1. Type `/ssh`, pick **Connect to an address…** (or **+ Save a machine** to give it a name).
@@ -168,28 +169,45 @@ On this computer:
 | `~/.pi/agent/pi-seamless-ssh/settings.json` | settings, saved machines, recent connections |
 | `~/.pi/agent/pi-seamless-ssh/session/` | a connection's private folder, removed on disconnect |
 | `~/.pi/agent/pi-seamless-ssh/current-session.json` | what a connection changed on this computer, so it can always be undone |
-| `~/.pi/agent/pi-seamless-ssh/debug.log` | only with `PSS_DEBUG=1` (see below) |
-| `/tmp/pss-<uid>/`, `/dev/shm/pss-<uid>/` | the connection's socket, and short-lived copies (in RAM on Linux) |
+| `~/.pi/agent/pi-seamless-ssh/debug.log` | only with `PI_SEAMLESS_SSH_DEBUG=1` (see below) |
+| `/tmp/pss-<uid>-<id>/`, `/dev/shm/pss-<uid>-<id>/` | the connection's socket, and short-lived copies (in RAM on Linux); `<id>` is short for this pi's agent folder |
 | macOS Keychain / Secret Service | saved passwords, only when you tick Save the password |
 
 On the remote: `<project>/.pi/agent/` (the project's pi files and its AGENTS.md copy), a listing file there while
 connected, and a temporary folder per command, removed when it ends.
 
-### Remove everything
+## Uninstall
 
-**[DANGER] › Remove everything…** in the panel deletes everything the extension made on this computer: settings,
-saved machines, saved passwords, session folders, sockets, RAM copies and the debug log. Do it before uninstalling;
-`pi uninstall` can't run the extension's code. The remotes are left as they are: each project's `.pi/agent`, and
-key logins in `~/.ssh/authorized_keys`.
+Do it in this order, so nothing is left behind.
 
-```bash
-pi uninstall npm:pi-seamless-ssh
-```
+1. **Clean up from inside pi.** Close every other pi window that uses the extension. Then open `/ssh` →
+   **[DANGER] › Remove everything…** (or type `/ssh remove`) and confirm. pi:
+   - disconnects, and puts this computer's pi files back as they were,
+   - deletes `~/.pi/agent/pi-seamless-ssh/`: settings, saved machines, recent connections, session folders and the
+     debug log,
+   - removes the passwords saved for your machines from the keychain,
+   - deletes its sockets and RAM copies, and its copies in npm's download cache, nothing else there,
+   - and writes nothing more until you quit, even if you keep using pi.
+2. **Quit pi and remove the code:**
+   ```bash
+   pi uninstall npm:pi-seamless-ssh
+   ```
+
+### What isn't removed, on purpose
+
+- **The remote machines:** each project's `.pi/agent` (its files and its AGENTS.md copy) is the project's, and stays
+  there. Key logins set up with **Set up key login** stay in that machine's `~/.ssh/authorized_keys`; remove the line
+  by hand if you want.
+- **Your SSH key:** if the extension made `~/.ssh/id_ed25519` for key login, it's an ordinary key you may use
+  elsewhere, so it stays.
+- **`~/.ssh/known_hosts`:** the machines you trusted are ssh's own record, as with plain `ssh`.
+- **Your pi sessions:** chats that used `/ssh` hold small `pi-seamless-ssh` entries (which machine each point worked
+  on). pi ignores them once the extension is gone; cutting them out would break the sessions.
 
 ## Debug log
 
 ```bash
-PSS_DEBUG=1 pi
+PI_SEAMLESS_SSH_DEBUG=1 pi
 ```
 
 writes `~/.pi/agent/pi-seamless-ssh/debug.log`: connections, the first line of each remote command, transfers,

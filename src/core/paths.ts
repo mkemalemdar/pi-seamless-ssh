@@ -7,10 +7,10 @@
 import { posix } from "node:path";
 
 export interface Workspace {
-  homeAgent: string;
-  homeHome: string;
-  remoteProject: string;
-  remoteHome: string;
+	homeAgent: string;
+	homeHome: string;
+	remoteProject: string;
+	remoteHome: string;
 }
 
 export const remoteAgent = (ws: Workspace): string => posix.join(ws.remoteProject, ".pi", "agent");
@@ -29,31 +29,31 @@ const PI_OWN = new Set(["sessions", "npm", "install", "bin", "git", "extensions"
  * settings, logins and instructions) and not in one of pi's own folders.
  */
 export function isSharedRel(rel: string): boolean {
-  const parts = rel.split("/");
-  return parts.length >= 2 && !parts.includes("..") && !parts.includes("") && !PI_OWN.has(parts[0]!);
+	const parts = rel.split("/");
+	return parts.length >= 2 && !parts.includes("..") && !parts.includes("") && !PI_OWN.has(parts[0]!);
 }
 
 /** A remote path as the model gives it: `~` is the remote home, relative paths start in the project. */
 export function resolveRemote(path: string, ws: Workspace): string {
-  if (path === "~") return ws.remoteHome;
-  if (path.startsWith("~/")) return posix.join(ws.remoteHome, path.slice(2));
-  return posix.resolve(ws.remoteProject, path);
+	if (path === "~") return ws.remoteHome;
+	if (path.startsWith("~/")) return posix.join(ws.remoteHome, path.slice(2));
+	return posix.resolve(ws.remoteProject, path);
 }
 
 /** `child` relative to `parent` when it is inside it, else undefined. */
 export function relInside(parent: string, child: string): string | undefined {
-  const base = parent.endsWith("/") ? parent : `${parent}/`;
-  return child.startsWith(base) ? child.slice(base.length) : undefined;
+	const base = parent.endsWith("/") ? parent : `${parent}/`;
+	return child.startsWith(base) ? child.slice(base.length) : undefined;
 }
 
 /** The remote name of a home file in the agent folder. */
 export function homeToRemote(homePath: string, ws: Workspace): string | undefined {
-  const rel = relInside(ws.homeAgent, homePath);
-  return rel === undefined ? undefined : posix.join(remoteAgent(ws), rel);
+	const rel = relInside(ws.homeAgent, homePath);
+	return rel === undefined ? undefined : posix.join(remoteAgent(ws), rel);
 }
 
 /** The home name of a remote file in the project's agent folder. */
 export function remoteToHome(remotePath: string, ws: Workspace): string | undefined {
-  const rel = relInside(remoteAgent(ws), remotePath);
-  return rel === undefined ? undefined : `${ws.homeAgent}/${rel}`;
+	const rel = relInside(remoteAgent(ws), remotePath);
+	return rel === undefined ? undefined : `${ws.homeAgent}/${rel}`;
 }

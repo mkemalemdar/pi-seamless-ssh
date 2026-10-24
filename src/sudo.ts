@@ -5,24 +5,24 @@
 import type { SudoRequest } from "./routed/bash.ts";
 
 export class SudoPasswords {
-  private kept: { connection: object; password: string } | undefined;
-  private readonly remember: () => boolean;
+	private kept: { connection: object; password: string } | undefined;
+	private readonly remember: () => boolean;
 
-  constructor(remember: () => boolean) {
-    this.remember = remember;
-  }
+	constructor(remember: () => boolean) {
+		this.remember = remember;
+	}
 
-  /** The kept password for `connection`, or what `ask` returns (kept when remembering). */
-  async answer(request: SudoRequest, connection: object, ask: (request: SudoRequest) => Promise<string | undefined>): Promise<string | undefined> {
-    // A sudo asking again: the last answer was wrong, so a kept one is dropped.
-    if (request.retry || !this.remember() || this.kept?.connection !== connection) this.kept = undefined;
-    if (this.kept) return this.kept.password;
-    const password = await ask(request);
-    if (password !== undefined && this.remember()) this.kept = { connection, password };
-    return password;
-  }
+	/** The kept password for `connection`, or what `ask` returns (kept when remembering). */
+	async answer(request: SudoRequest, connection: object, ask: (request: SudoRequest) => Promise<string | undefined>): Promise<string | undefined> {
+		// A sudo asking again: the last answer was wrong, so a kept one is dropped.
+		if (request.retry || !this.remember() || this.kept?.connection !== connection) this.kept = undefined;
+		if (this.kept) return this.kept.password;
+		const password = await ask(request);
+		if (password !== undefined && this.remember()) this.kept = { connection, password };
+		return password;
+	}
 
-  forget(): void {
-    this.kept = undefined;
-  }
+	forget(): void {
+		this.kept = undefined;
+	}
 }

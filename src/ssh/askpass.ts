@@ -27,73 +27,73 @@ socket.on("error", () => process.exit(1));
 `;
 
 export class Askpass {
-  /** True while a dialog is open, so connect time limits can pause. */
-  pending = 0;
-  readonly helperPath: string;
-  readonly socketPath: string;
-  private server: Server | undefined;
-  private readonly handler: PromptHandler;
+	/** True while a dialog is open, so connect time limits can pause. */
+	pending = 0;
+	readonly helperPath: string;
+	readonly socketPath: string;
+	private server: Server | undefined;
+	private readonly handler: PromptHandler;
 
-  /** `binDir` holds the helper script; `socketDir` is private (mode 700) and short enough for a socket path. */
-  constructor(binDir: string, socketDir: string, id: string, handler: PromptHandler) {
-    this.handler = handler;
-    mkdirSync(binDir, { recursive: true, mode: 0o700 });
-    const script = join(binDir, "askpass.mjs");
-    writeFileSync(script, HELPER, { mode: 0o600 });
-    this.helperPath = join(binDir, "askpass");
-    writeFileSync(this.helperPath, `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(script)} "$@"\n`, { mode: 0o700 });
-    chmodSync(this.helperPath, 0o700);
-    this.socketPath = join(socketDir, `${id}.ask`);
-  }
+	/** `binDir` holds the helper script; `socketDir` is private (mode 700) and short enough for a socket path. */
+	constructor(binDir: string, socketDir: string, id: string, handler: PromptHandler) {
+		this.handler = handler;
+		mkdirSync(binDir, { recursive: true, mode: 0o700 });
+		const script = join(binDir, "askpass.mjs");
+		writeFileSync(script, HELPER, { mode: 0o600 });
+		this.helperPath = join(binDir, "askpass");
+		writeFileSync(this.helperPath, `#!/bin/sh\nexec ${JSON.stringify(process.execPath)} ${JSON.stringify(script)} "$@"\n`, { mode: 0o700 });
+		chmodSync(this.helperPath, 0o700);
+		this.socketPath = join(socketDir, `${id}.ask`);
+	}
 
-  async start(): Promise<void> {
-    if (this.server) return;
-    const server = createServer((socket) => this.serve(socket));
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-      server.listen(this.socketPath, () => resolve());
-    });
-    this.server = server;
-  }
+	async start(): Promise<void> {
+		if (this.server) return;
+		const server = createServer((socket) => this.serve(socket));
+		await new Promise<void>((resolve, reject) => {
+			server.once("error", reject);
+			server.listen(this.socketPath, () => resolve());
+		});
+		this.server = server;
+	}
 
-  stop(): void {
-    this.server?.close();
-    this.server = undefined;
-  }
+	stop(): void {
+		this.server?.close();
+		this.server = undefined;
+	}
 
-  /** The environment ssh needs to use the helper. */
-  env(): Record<string, string> {
-    return {
-      SSH_ASKPASS: this.helperPath,
-      SSH_ASKPASS_REQUIRE: "force",
-      // Older OpenSSH only uses SSH_ASKPASS when DISPLAY is set.
-      DISPLAY: process.env.DISPLAY ?? ":0",
-      PSS_ASKPASS_SOCKET: this.socketPath,
-    };
-  }
+	/** The environment ssh needs to use the helper. */
+	env(): Record<string, string> {
+		return {
+			SSH_ASKPASS: this.helperPath,
+			SSH_ASKPASS_REQUIRE: "force",
+			// Older OpenSSH only uses SSH_ASKPASS when DISPLAY is set.
+			DISPLAY: process.env.DISPLAY ?? ":0",
+			PSS_ASKPASS_SOCKET: this.socketPath,
+		};
+	}
 
-  private serve(socket: Socket): void {
-    let data = "";
-    socket.setEncoding("utf8");
-    socket.on("data", (chunk) => {
-      data += chunk;
-      const end = data.indexOf("\n");
-      if (end < 0) return;
-      let prompt = "";
-      try {
-        prompt = String((JSON.parse(data.slice(0, end)) as { prompt?: unknown }).prompt ?? "");
-      } catch {
-        socket.end(`${JSON.stringify({ cancel: true })}\n`);
-        return;
-      }
-      this.pending++;
-      this.handler(prompt)
-        .then((answer) => socket.end(`${JSON.stringify(answer === undefined ? { cancel: true } : { answer })}\n`))
-        .catch(() => socket.end(`${JSON.stringify({ cancel: true })}\n`))
-        .finally(() => this.pending--);
-    });
-    socket.on("error", () => {});
-  }
+	private serve(socket: Socket): void {
+		let data = "";
+		socket.setEncoding("utf8");
+		socket.on("data", (chunk) => {
+			data += chunk;
+			const end = data.indexOf("\n");
+			if (end < 0) return;
+			let prompt = "";
+			try {
+				prompt = String((JSON.parse(data.slice(0, end)) as { prompt?: unknown }).prompt ?? "");
+			} catch {
+				socket.end(`${JSON.stringify({ cancel: true })}\n`);
+				return;
+			}
+			this.pending++;
+			this.handler(prompt)
+				.then((answer) => socket.end(`${JSON.stringify(answer === undefined ? { cancel: true } : { answer })}\n`))
+				.catch(() => socket.end(`${JSON.stringify({ cancel: true })}\n`))
+				.finally(() => this.pending--);
+		});
+		socket.on("error", () => {});
+	}
 }
 
 /** ssh asks yes/no for a new host key, everything else is a password or passphrase. */
