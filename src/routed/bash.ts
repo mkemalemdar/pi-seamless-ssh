@@ -85,9 +85,11 @@ export function bashScript(command: string, cwd: string, useBash: boolean): stri
     `PATH="$p" ${shell} "$c" > "$f" 2>&1 < /dev/null &`,
     `pid=$!`,
     `printf '${PID}%s\\n' "$pid" >&2`,
-    `( while :; do send; sleep 0.1; done ) & loop=$!`,
+    // The loop is asked to stop, never killed: killed in the middle of a send, the part it was sending would be sent again.
+    `( while [ ! -e "$d/stop" ]; do send; sleep 0.1; done ) & loop=$!`,
     `wait "$pid"; code=$?`,
-    `kill "$loop" $asker 2>/dev/null; wait "$loop" $asker 2>/dev/null`,
+    `: > "$d/stop"; wait "$loop"`,
+    `kill $asker 2>/dev/null; wait $asker 2>/dev/null`,
     `send`,
     `rm -rf -- "$d"`,
     `printf '${EXIT}%s\\n' "$code" >&2`,

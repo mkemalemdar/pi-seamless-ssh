@@ -2,7 +2,8 @@
 
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync, existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { remoteBashOps } from "../src/routed/bash.ts";
@@ -186,4 +187,17 @@ test("bash: a command containing quotes, heredoc-like lines and $ survives intac
   const cmd = `printf '%s\\n' "it's \\$HOME" 'PSS_CMD_x'\ncat <<'EOF2'\nline $x\nEOF2`;
   await remoteBashOps(() => remote).exec(cmd, tmp(), { onData: (d) => (out += d.toString()) });
   assert.equal(out, "it's $HOME\nPSS_CMD_x\nline $x\n");
+});
+
+test("bash: output arrives exactly once, also when the command ends while a part of it is being sent", async () => {
+  const { conn, remote } = await localRemote();
+  // A slow `tail` (the send loop's) makes the command end while the loop is in the middle of sending.
+  const bin = tmp();
+  const real = execFileSync("sh", ["-c", "command -v tail"], { encoding: "utf8" }).trim();
+  writeFileSync(join(bin, "tail"), `#!/bin/sh\nsleep 0.3\nexec ${real} "$@"\n`);
+  chmodSync(join(bin, "tail"), 0o755);
+  conn.env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+  let out = "";
+  await remoteBashOps(() => remote).exec("echo once; sleep 0.15", tmp(), { onData: (d) => (out += d.toString()) });
+  assert.equal(out, "once\n");
 });
