@@ -1,0 +1,12 @@
+# Dependencies and build output
+node_modules/
+*.tgz
+
+# Logs and local files
+*.log
+.env
+.env.*
+.DS_Store
+.vscode/
+.idea/
+coverage/

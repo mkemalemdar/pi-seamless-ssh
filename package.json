@@ -1,0 +1,51 @@
+{
+  "name": "pi-seamless-ssh",
+  "version": "0.1.0",
+  "description": "Pi extension: point a chat at another machine over SSH. The model works there as if it lived there, your extensions keep working, and the project keeps its own .pi files.",
+  "type": "module",
+  "license": "MIT",
+  "author": "mkemalemdar",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mkemalemdar/pi-seamless-ssh.git"
+  },
+  "homepage": "https://github.com/mkemalemdar/pi-seamless-ssh#readme",
+  "bugs": {
+    "url": "https://github.com/mkemalemdar/pi-seamless-ssh/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "ssh",
+    "remote",
+    "remote-development",
+    "workspace"
+  ],
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=1.4.0 <2"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "1.4.0",
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}
