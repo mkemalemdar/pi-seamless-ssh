@@ -13,19 +13,24 @@ unchanged.
 - **Nothing to install on the remote:** it only needs SSH and a shell. No mount, no FUSE, no admin rights.
 - **Switch machines in the same chat**, disconnect, reconnect: the chat and its context stay.
 
-## Install
+> 🤖 **AI agent installing or removing this for someone?** Read [AGENT_INSTALL.md](AGENT_INSTALL.md) first: what to
+> check and ask, how to write the settings, how to uninstall without leaving anything behind, and what never to touch.
 
-```bash
-pi install npm:pi-seamless-ssh
-```
+## Requirements
 
-Needs pi 1.4 or newer, and the OpenSSH client (`ssh`) on this computer.
+- pi 1.4 or newer, and the OpenSSH client (`ssh`) on this computer.
 
 | | Supported |
 |---|---|
 | This computer (where pi runs) | macOS, Linux |
 | The remote | macOS, Linux, or anything with SSH, a POSIX shell and the usual tools (`tar`, `find`, `awk`, `sed`, …) |
 | Windows | no, on either side |
+
+## Install
+
+```bash
+pi install npm:pi-seamless-ssh
+```
 
 ## Use
 
@@ -204,14 +209,26 @@ Do it in this order, so nothing is left behind.
 - **Your pi sessions:** chats that used `/ssh` hold small `pi-seamless-ssh` entries (which machine each point worked
   on). pi ignores them once the extension is gone; cutting them out would break the sessions.
 
-## Debug log
+## Troubleshooting
 
-```bash
-PI_SEAMLESS_SSH_DEBUG=1 pi
-```
-
-writes `~/.pi/agent/pi-seamless-ssh/debug.log`: connections, the first line of each remote command, transfers,
-sweeps and problems. Never passwords or file contents.
+- **"… refused the login":** a wrong password, or the key isn't allowed there. With a password, tick **Set up key
+  login** once, and later connections need none.
+- **"… host key has changed":** the machine was reinstalled, or someone is intercepting the connection. Check it,
+  then remove the old key with `ssh-keygen -R <host>` and connect again.
+- **"… isn't a known machine name" / "didn't answer in time":** check the address, the network, and that the SSH
+  server runs there.
+- **A program works in your terminal on the remote but not for the model** ("command not found"): the extension uses
+  your login's PATH, read once when connecting. If it warns "Couldn't read your login PATH", your shell's startup
+  files hang or fail without a terminal; fix that, then connect again.
+- **"The connection to … is lost. Nothing was run.":** it reconnects by itself with a key or a saved password;
+  otherwise `/ssh` asks. Nothing runs on this computer instead.
+- **"the macOS Keychain is locked":** pi runs in an SSH session on the Mac, where the Keychain can't be opened, so
+  the password wasn't saved. Set up key login instead.
+- **sudo says "a terminal is required":** the command runs sudo by its full path (`/usr/bin/sudo …`), which skips
+  the extension's password box. Run it as `sudo …`.
+- **More detail:** start pi with `PI_SEAMLESS_SSH_DEBUG=1 pi`. It writes `~/.pi/agent/pi-seamless-ssh/debug.log`:
+  connections, the first line of each remote command, transfers, sweeps and problems. Never passwords or file
+  contents.
 
 ## Limits
 
@@ -226,8 +243,8 @@ sweeps and problems. Never passwords or file contents.
 
 ## Development
 
-See [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) for the design and [docs/TESTING.md](docs/TESTING.md) for the
-tests.
+See [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) for the design, [docs/TESTING.md](docs/TESTING.md) for the
+tests, and [AGENT_INSTALL.md](AGENT_INSTALL.md) for what an AI agent installing it does.
 
 ```bash
 npm run check     # typecheck + unit tests

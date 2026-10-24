@@ -122,6 +122,11 @@ Each call gets a temporary folder on the remote (`mktemp -d`):
 A value counts as a path only when a real file or folder backs it, so plain text is never touched. Scratch copies
 live in RAM (`/dev/shm`) on Linux when it's a tmpfs, on disk otherwise.
 
+**Folders outside pi's agent folder** (`src/runtime.ts`): the connection's sockets go to `/tmp/pss-<uid>-<id>/` and
+the RAM copies to `/dev/shm/pss-<uid>-<id>/`, where `<id>` is a short hash of this pi's agent folder. So two pi setups
+on one computer (or the tests) never share them, and Remove everything only deletes its own. The last session out
+removes the empty RAM folder.
+
 **Transfers** use `tar` (ustar, `COPYFILE_DISABLE=1` on macOS) over the connection, gzip when the batch is at least
 1 MB and compresses well. Files are staged under a `.pss-part` name and renamed when complete, sizes are checked,
 and dates are kept. Progress counts the real bytes (before compressing on the way out, after decompressing on the way
@@ -151,3 +156,11 @@ branch of the point you're on, and connects, disconnects or asks, per the settin
 - pi's footer git branch can't be set by an extension, so the remote's branch is in the extension's status line.
 - Settings are written atomically (a temporary file and a rename), with mode 600.
 - The debug log (`PI_SEAMLESS_SSH_DEBUG=1`) records the first line of each remote command, never the data sent with it.
+
+## Remove everything
+
+`/ssh` → [DANGER] → Remove everything… (or `/ssh remove`): disconnects (home's pi files are put back), marks the
+extension removed (`src/removed.ts`, on `globalThis`, so it holds after `/reload` too: nothing is written again),
+removes the saved passwords from the keychain, deletes `~/.pi/agent/pi-seamless-ssh/` and this setup's socket and
+RAM folders, and deletes its copies in npm's cache (`src/cleanup/npm-cache.ts`, the same cleaner as
+pi-harness-whatsapp's). The remote machines are left as they are.

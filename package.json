@@ -1,6 +1,6 @@
 {
   "name": "pi-seamless-ssh",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pi extension: point a chat at another machine over SSH. The model works there as if it lived there, your extensions keep working, and the project keeps its own .pi files.",
   "type": "module",
   "license": "MIT",
@@ -24,6 +24,7 @@
   "files": [
     "src",
     "README.md",
+    "AGENT_INSTALL.md",
     "CHANGELOG.md",
     "LICENSE"
   ],

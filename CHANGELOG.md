@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 — 2026-10-24
+
+- **AGENT_INSTALL.md:** what an AI agent installing (or removing) it for someone checks, asks and writes, and what it
+  never does.
+- The README has Requirements and a Troubleshooting section with the messages you can see and what to do about them.
+
 ## 0.1.0 — 2026-10-24
 
 First release.
