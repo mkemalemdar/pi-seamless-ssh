@@ -27,7 +27,7 @@ import { type ConnectUI, dialogUI } from "./ui/connect-ui.ts";
 import { applyModelTools } from "./model-tools.ts";
 import { cleanNpmCache } from "./cleanup/npm-cache.ts";
 import { isRemoved, markRemoved } from "./removed.ts";
-import { runtimeFolders, socketBase } from "./runtime.ts";
+import { releaseSocketBase, runtimeFolders, socketBase } from "./runtime.ts";
 import { saveJson } from "./store.ts";
 import { SudoPasswords } from "./sudo.ts";
 import { PasswordPrompt } from "./ui/password.ts";
@@ -86,6 +86,9 @@ export class Controller {
 	}
 	private passwords: Promise<PasswordStore> | undefined;
 	readonly sudo = new SudoPasswords(() => this.settings.sudoRemember);
+
+	/** Called once a connection is about to start working, before its session exists (src/index.ts takes over pi's tools). */
+	onFirstConnect: ((ctx: ExtensionContext) => void) | undefined;
 
 	constructor(pi: ExtensionAPI) {
 		this.pi = pi;
@@ -219,6 +222,8 @@ export class Controller {
 			return await this.openWith(ctx, target, project, ui, conn, attempt, name, socketDir, id);
 		} finally {
 			ui.onCancel(() => {});
+			// A failed or stopped attempt leaves nothing behind.
+			if (!this.session) releaseSocketBase();
 		}
 	}
 
@@ -319,6 +324,7 @@ export class Controller {
 			setAside: {},
 			createdDirs: [],
 		});
+		this.onFirstConnect?.(ctx);
 		this.session = new Session({
 			conn,
 			remote,
@@ -542,6 +548,7 @@ export class Controller {
 		if (!s) return;
 		this.session = undefined;
 		await s.close();
+		releaseSocketBase();
 		if (options.remember !== false) this.pi.appendEntry<ChatEntry>(ENTRY, { machine: null });
 		this.refreshStatus(ctx);
 		if (!options.quiet) ctx?.ui.notify(`Disconnected from ${this.label(s.machine)}. The model works on this computer again.`, "info");

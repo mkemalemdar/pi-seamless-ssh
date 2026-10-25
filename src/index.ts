@@ -16,11 +16,19 @@ export default function (pi: ExtensionAPI) {
 	const c = new Controller(pi);
 	const session = () => c.session;
 
-	registerRouted(pi, session, (request) => c.askSudo(request));
 	registerHooks(pi, session);
 	registerCommand(pi, c);
 	registerModelTools(pi, c);
-	let completionAdded = false;
+	// pi's tools and `@` suggestions are taken over at this chat's first connection, not before: until then pi runs as
+	// if the extension weren't there. pi can't hand a tool back, so after a disconnect they pass straight through to
+	// pi's own until the chat ends (/new, /resume, /fork, /reload and quitting load every extension fresh).
+	let takenOver = false;
+	c.onFirstConnect = (ctx) => {
+		if (takenOver) return;
+		takenOver = true;
+		registerRouted(pi, session, (request) => c.askSudo(request));
+		if (ctx.hasUI && ctx.mode === "tui") ctx.ui.addAutocompleteProvider((current) => remoteAtProvider(current, session));
+	};
 
 	pi.on("session_start", async (event, ctx) => {
 		c.track(ctx);
@@ -29,11 +37,6 @@ export default function (pi: ExtensionAPI) {
 		await c.cleanupLeftover(ctx);
 		c.refreshStatus(ctx);
 		applyModelTools(pi, c.settings.modelTools);
-		// `@` suggestions come from the remote project while connected (pi's own otherwise).
-		if (ctx.hasUI && ctx.mode === "tui" && !completionAdded) {
-			completionAdded = true;
-			ctx.ui.addAutocompleteProvider((current) => remoteAtProvider(current, session));
-		}
 		await follow(ctx, event.reason);
 	});
 

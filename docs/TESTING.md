@@ -20,7 +20,7 @@ model, in the environment or in `test/integration/.env` (git ignores it; the env
 
 | Variable | What |
 |---|---|
-| `IT_TARGET` | the machine, e.g. `me@192.168.1.20`; it must log in without a password prompt |
+| `IT_TARGET` | the machine, e.g. `me@192.168.1.20`, or this same computer (`me@localhost`, with a key whose `authorized_keys` line starts `from="127.0.0.1,::1"`); it must log in without a password prompt |
 | `IT_KEY` | a private key for it, loaded into a throwaway ssh-agent (otherwise your own ssh setup is used) |
 | `IT_MODEL` | `provider/id` of the model, for the tests that ask one |
 | `IT_EXTENSIONS` | pi extensions that provide that model, comma-separated paths |

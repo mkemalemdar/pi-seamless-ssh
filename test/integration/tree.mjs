@@ -4,7 +4,7 @@
 // "reconnect automatically"); with "ask me", a yes switches and a no leaves it.
 
 import { execFileSync, spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
@@ -20,7 +20,6 @@ const check = (name, ok, detail = "") => {
 };
 const ssh = sshEnv();
 const env = ssh.env;
-const here = execFileSync("hostname", { encoding: "utf8" }).trim();
 const project = `pss-tree-it-${Date.now()}`;
 execFileSync("ssh", ["-o", "BatchMode=yes", TARGET, `mkdir -p ~/${project}`], { env, stdio: "ignore" });
 
@@ -62,9 +61,13 @@ async function run(reopen, steps) {
 		proc.stdin.write(`${JSON.stringify({ id, ...cmd })}\n`);
 		return new Promise((resolve) => pending.set(id, resolve));
 	};
-	const host = async () => String((await send({ type: "bash", command: "hostname" })).data?.output ?? "").trim();
+	// Where `!` commands run, told by the working folder (pi's own folder here, the project on the remote), so this
+	// also works when the remote is this same computer.
+	const host = async () => String((await send({ type: "bash", command: "pwd" })).data?.output ?? "").trim();
 	const settle = () => new Promise((r) => setTimeout(r, 2500));
+	const here = realpathSync(join(dir, "work"));
 	const api = {
+		here,
 		send,
 		host,
 		settle,
@@ -89,15 +92,15 @@ async function run(reopen, steps) {
 
 try {
 	await run("reconnect", async (pi) => {
-		check("point A runs on this computer", (await pi.host()) === here);
+		check("point A runs on this computer", (await pi.host()) === pi.here);
 		const a = await pi.lastEntryId();
 		await pi.send({ type: "prompt", message: `/ssh ${TARGET} ~/${project}` });
 		await pi.settle();
 		const remoteHost = await pi.host();
-		check("point B runs on the remote", remoteHost !== here && remoteHost !== "", remoteHost);
+		check("point B runs on the remote", remoteHost !== pi.here && remoteHost.endsWith(project), remoteHost);
 		const b = await pi.lastEntryId();
 		await pi.goTo(a);
-		check("back to A (before connecting): the chat is on this computer again", (await pi.host()) === here);
+		check("back to A (before connecting): the chat is on this computer again", (await pi.host()) === pi.here);
 		await pi.goTo(b);
 		check("on to B again: the chat reconnects to the remote by itself", (await pi.host()) === remoteHost);
 	});
@@ -108,19 +111,19 @@ try {
 		const b = await pi.lastEntryId();
 		pi.answer(false);
 		await pi.goTo(a);
-		check("'ask me', answered no: it stays connected", (await pi.host()) !== here);
+		check("'ask me', answered no: it stays connected", (await pi.host()) !== pi.here);
 		pi.answer(true);
 		await pi.goTo(a);
-		check("'ask me', answered yes: back on this computer", (await pi.host()) === here);
+		check("'ask me', answered yes: back on this computer", (await pi.host()) === pi.here);
 		await pi.goTo(b);
-		check("'ask me', yes, to B: connected again", (await pi.host()) !== here);
+		check("'ask me', yes, to B: connected again", (await pi.host()) !== pi.here);
 	});
 	await run("home", async (pi) => {
 		const a = await pi.lastEntryId();
 		await pi.send({ type: "prompt", message: `/ssh ${TARGET} ~/${project}` });
 		await pi.settle();
 		await pi.goTo(a);
-		check("'don't reconnect': moving in the tree leaves the connection as it is", (await pi.host()) !== here);
+		check("'don't reconnect': moving in the tree leaves the connection as it is", (await pi.host()) !== pi.here);
 	});
 } catch (e) {
 	check("ran", false, e.message);

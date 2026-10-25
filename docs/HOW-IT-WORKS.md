@@ -77,6 +77,11 @@ pi's own tool definitions are used with operations that run on the remote (`crea
 { operations })` and so on), so their behaviour and output stay pi's. `grep` is replaced: pi's runs ripgrep on home;
 here it's the remote's ripgrep, or its grep.
 
+**Taken over at the first connection, not before** (`src/index.ts`): until then the extension registers none of
+pi's tools and no `@` suggestions, so pi runs as if it weren't installed. pi can add a tool at any time but can't
+remove one, so after a disconnect they stay registered, passing straight through to pi's own tools, until the chat
+ends: `/new`, `/resume`, `/fork`, `/reload` and quitting load every extension fresh.
+
 ### bash
 
 Each call gets a temporary folder on the remote (`mktemp -d`):

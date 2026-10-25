@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 — 2026-10-25
+
+- **Nothing is taken over until you connect.** pi's tools and `@` suggestions are taken over at a chat's first
+  connection instead of when pi starts, so a chat that never uses `/ssh` runs exactly as without the extension.
+  After `/ssh off` they pass straight through to pi's own until the chat ends (pi can't hand a tool back).
+- The connection's socket folder (`/tmp/pss-…`) is removed once no connection uses it, also after a failed attempt.
+- Development: the integration tests tell the remote from this computer by the working folder, so they also run
+  against the same computer.
+
 ## 0.1.1 — 2026-10-24
 
 - **AGENT_INSTALL.md:** what an AI agent installing (or removing) it for someone checks, asks and writes, and what it

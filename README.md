@@ -98,6 +98,11 @@ A saved machine's page has Connect, its name and address, its saved password, an
 
 ## What happens while connected
 
+Until you connect, nothing: the extension takes over none of pi's tools, and runs no ssh, nothing in the background,
+and writes nothing. pi works exactly as without it. (pi can't hand a tool back, so after `/ssh off` the tools stay
+taken over, passing straight through to pi's own, until the chat ends: `/new`, `/resume`, `/fork`, `/reload` or
+quitting.)
+
 ### Commands run on the remote
 
 Every command the model runs, and every `!command` you type, runs on the remote in the project folder.

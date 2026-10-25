@@ -11,6 +11,14 @@ export default function (pi: ExtensionAPI) {
 		description: "test: list active tools",
 		handler: async (_args, ctx) => ctx.ui.notify(`active tools: ${pi.getActiveTools().join(",")}`, "info"),
 	});
+	// /pss-source <tool>: where that tool comes from now ("builtin:…" for pi's own), as a notice.
+	pi.registerCommand("pss-source", {
+		description: "test: a tool's source",
+		handler: async (args, ctx) => {
+			const tool = pi.getAllTools().find((t) => t.name === args.trim());
+			ctx.ui.notify(`source ${args.trim()}: ${tool?.sourceInfo?.path ?? "none"}`, "info");
+		},
+	});
 	pi.registerCommand("pss-tree", {
 		description: "test: go to a point of the chat",
 		handler: async (args, ctx) => {

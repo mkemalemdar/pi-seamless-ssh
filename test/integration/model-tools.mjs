@@ -1,10 +1,11 @@
 // The model switching machines by itself, against a real machine and model:
 //   node test/integration/model-tools.mjs        (the machine and the model: IT_TARGET, IT_KEY, IT_MODEL…, see settings.ts)
-// With "The model can switch machines" on: the model connects to the saved machine, runs hostname there, disconnects.
+// With "The model can switch machines" on: the model connects to the saved machine, runs pwd there, disconnects
+// (told apart by the working folder, so the remote can be this same computer).
 // With it off: the tools aren't offered to the model at all.
 
 import { execFileSync, spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
@@ -21,7 +22,6 @@ const check = (name, ok, detail = "") => {
 };
 const ssh = sshEnv();
 const env = ssh.env;
-const here = execFileSync("hostname", { encoding: "utf8" }).trim();
 const remoteHome = execFileSync("ssh", ["-o", "BatchMode=yes", TARGET, 'printf %s "$HOME"'], { env, encoding: "utf8" });
 const project = `${remoteHome}/pss-model-it-${Date.now()}`;
 execFileSync("ssh", ["-o", "BatchMode=yes", TARGET, `mkdir -p '${project}'`], { env, stdio: "ignore" });
@@ -78,7 +78,7 @@ async function run(modelTools, steps) {
 		return (n?.message ?? "").slice("active tools: ".length).split(",");
 	};
 	try {
-		await steps({ send, events, waitFor, activeTools });
+		await steps({ send, events, waitFor, activeTools, here: realpathSync(join(dir, "work")) });
 	} finally {
 		proc.stdin.end();
 		await new Promise((r) => {
@@ -100,7 +100,7 @@ try {
 		await pi.send({ type: "set_model", provider: PROVIDER, modelId: MODEL });
 		await pi.send({ type: "set_thinking_level", level: "low" });
 		const mark = pi.events.length;
-		await pi.send({ type: "prompt", message: "Use the ssh_connect tool to connect to the saved machine named vm. Then run `hostname` with the bash tool. Then use ssh_disconnect. Finally run `hostname` with bash once more. Reply with both outputs." });
+		await pi.send({ type: "prompt", message: "Use the ssh_connect tool to connect to the saved machine named vm. Then run `pwd` with the bash tool. Then use ssh_disconnect. Finally run `pwd` with bash once more. Reply with both outputs." });
 		await pi.waitFor((e) => e.type === "agent_settled" && pi.events.indexOf(e) >= mark, 600000);
 		const calls = pi.events.slice(mark).filter((e) => e.type === "tool_execution_end").map((e) => ({ tool: e.toolName, out: JSON.stringify(e.result?.content ?? "") }));
 		const order = calls.map((c) => c.tool).join(" → ");
@@ -109,8 +109,8 @@ try {
 		const between = calls.slice(connectAt + 1, disconnectAt).filter((c) => c.tool === "bash");
 		const after = calls.slice(disconnectAt + 1).filter((c) => c.tool === "bash");
 		check("ssh_connect connected", connectAt >= 0 && /Connected to vm/.test(calls[connectAt]?.out ?? ""), calls[connectAt]?.out.slice(0, 160));
-		check("bash after ssh_connect ran on the remote", between.length > 0 && !between.some((c) => c.out.includes(here)), between.map((c) => c.out).join(" ").slice(0, 160));
-		check("bash after ssh_disconnect ran on this computer", after.length > 0 && after.every((c) => c.out.includes(here)), `${order} | ${after.map((c) => c.out).join(" ").slice(0, 120)}`);
+		check("bash after ssh_connect ran on the remote", between.length > 0 && between.every((c) => c.out.includes(project) && !c.out.includes(pi.here)), between.map((c) => c.out).join(" ").slice(0, 160));
+		check("bash after ssh_disconnect ran on this computer", after.length > 0 && after.every((c) => c.out.includes(pi.here)), `${order} | ${after.map((c) => c.out).join(" ").slice(0, 120)}`);
 	});
 } catch (e) {
 	check("ran", false, e.message);

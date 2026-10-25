@@ -4,7 +4,7 @@
 // everything" deletes only this setup's.
 
 import { createHash } from "node:crypto";
-import { accessSync, constants, existsSync, statfsSync } from "node:fs";
+import { accessSync, constants, existsSync, rmdirSync, statfsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
@@ -35,6 +35,15 @@ export const socketBase = (): string => join(existsSync("/tmp") ? "/tmp" : tmpdi
 export function ramFolder(): string | undefined {
 	const base = ramBase();
 	return base ? join(base, runtimeName()) : undefined;
+}
+
+/** The socket folder goes once no connection uses it (a failed attempt, a disconnect); another pi's keeps it. */
+export function releaseSocketBase(): void {
+	try {
+		rmdirSync(socketBase());
+	} catch {
+		// Not empty (a connection is still open), or gone already.
+	}
 }
 
 /** Every such folder of this setup, for "Remove everything". */
