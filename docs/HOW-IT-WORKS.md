@@ -151,6 +151,32 @@ length-prefixed, and the git branch with them (`git symbolic-ref --short -q HEAD
 Each connect and disconnect appends an entry to the chat. On resume, fork and `/tree` the extension looks at the
 branch of the point you're on, and connects, disconnects or asks, per the setting.
 
+## Safeguards, and why
+
+Several come from bugs other SSH extensions for pi had (marked *seen*).
+
+- **Connecting gives up** after 10 s (`ConnectTimeout`), and a password is asked at most 3 times. Errors are in plain
+  words with what to do (`src/core/errors.ts`); a **changed host key is refused**, never retried or accepted.
+- **`~/.ssh/config` is ssh's own job:** the system's `ssh` reads it (ports, users, jump hosts); the extension never
+  parses it for connecting (*seen*: a wrong port taken from the config by another extension).
+- **A dead connection is noticed within about 30 s** even while idle (keep-alive every 10 s, 3 misses). Reconnecting
+  by itself waits 1, 2, 5, 10, then 30 s between tries (about 2 minutes in all), then asks: try again, keep waiting,
+  or go home. A command that was running when it dropped returns "the command may have run partly".
+- **Every command's input is closed** (`< /dev/null`), so nothing waits for typing that never comes (*seen*: a write
+  hanging forever), and **background programs don't hang the call**: it ends when the command's shell exits, not when
+  the output pipe closes (*seen*: hangs from children keeping the output open).
+- **A failed remote listing is never read as "the remote is empty":** that sweep is skipped and nothing is deleted.
+- **Files move whole or not at all:** staged under a temporary name, sizes checked, then renamed; a home file is
+  deleted only after its remote copy is complete.
+- **Placeholders are never sent empty:** if filling one for a tool call fails, the call is blocked with the reason.
+  Cleanup only ever touches what `current-session.json` lists, never a real home file.
+- **One connected pi per agent folder:** placeholders live in shared folders, so a second pi gets "already connected
+  … in another pi (process …)".
+- **Another extension replacing read, write, edit or bash** is detected and connecting is refused, rather than half
+  of the tools running on this computer (*seen*: a crash when two extensions claimed the same tools).
+- **Only pi's documented hooks** are used, and event fields are checked before use (*seen*: an extension broken by a
+  pi update that changed an event, another by a change in how bash gets its working folder).
+
 ## Living with pi
 
 - pi's footer git branch can't be set by an extension, so the remote's branch is in the extension's status line.
